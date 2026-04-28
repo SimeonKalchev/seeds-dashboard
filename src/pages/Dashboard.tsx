@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAccounts, useInsights } from '../hooks/useMeta'
 import AccountSelector from '../components/AccountSelector'
 import MetricCard from '../components/MetricCard'
@@ -27,6 +27,12 @@ export default function Dashboard({ token, onLogout }: Props) {
   const [datePreset, setDatePreset] = useState<DatePreset>('last_30d')
 
   const { data: accounts = [], isLoading: loadingAccounts } = useAccounts(token)
+
+  useEffect(() => {
+    if (accounts.length > 0 && selectedAccounts.length === 0) {
+      setSelectedAccounts(accounts.map((a) => a.id))
+    }
+  }, [accounts])
   const { data: insights = [], isLoading: loadingInsights } = useInsights(
     token,
     selectedAccounts,
