@@ -1,4 +1,5 @@
 import { getToken, verifyToken, unauthorized } from '../../lib/auth'
+import { getPageId, getPageToken } from '../../lib/meta'
 
 interface Env {
   Meta_Seeds_Bot_Token: string
@@ -24,14 +25,14 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   }
 
   const { accountId } = await request.json<{ accountId: string }>()
-  const metaToken = env.Meta_Seeds_Bot_Token
+  const systemToken = env.Meta_Seeds_Bot_Token
 
   // 1. Get ads
   const adsParams = new URLSearchParams({
     fields: 'id,creative{effective_object_story_id,object_story_id}',
     effective_status: JSON.stringify(['ACTIVE', 'PAUSED']),
     limit: '50',
-    access_token: metaToken,
+    access_token: systemToken,
   })
   const adsRes = await fetch(`https://graph.facebook.com/v21.0/${accountId}/ads?${adsParams}`)
   const adsData = await adsRes.json() as { data: MetaAd[] }
@@ -43,17 +44,27 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   )]
 
   if (!postIds.length) {
-    return Response.json({ comments: [], posts: [], error: 'No post IDs found' })
+    return Response.json({ comments: [], posts: [], total: 0 })
   }
 
-  // 2. Fetch comments for all posts in parallel — return raw results per post
+  // 2. Get unique page tokens (one per page)
+  const pageIds = [...new Set(postIds.map(getPageId))]
+  const pageTokenMap: Record<string, string> = {}
+  await Promise.all(
+    pageIds.map(async (pageId) => {
+      pageTokenMap[pageId] = await getPageToken(pageId, systemToken)
+    })
+  )
+
+  // 3. Fetch comments using page token for each post
   const postResults = await Promise.all(
     postIds.slice(0, 20).map(async (postId) => {
+      const pageToken = pageTokenMap[getPageId(postId)] ?? systemToken
       const params = new URLSearchParams({
         fields: 'id,message,from,created_time',
         filter: 'stream',
         limit: '25',
-        access_token: metaToken,
+        access_token: pageToken,
       })
       const res = await fetch(`https://graph.facebook.com/v21.0/${postId}/comments?${params}`)
       const data = await res.json() as { data?: MetaComment[]; error?: { message: string } }

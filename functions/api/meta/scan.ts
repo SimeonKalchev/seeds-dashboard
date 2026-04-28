@@ -1,4 +1,5 @@
 import { getToken, verifyToken, unauthorized } from '../../lib/auth'
+import { getPageId, getPageToken } from '../../lib/meta'
 
 interface Env {
   Meta_Seeds_Bot_Token: string
@@ -64,14 +65,24 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
     })
   }
 
-  // 3. Fetch comments for all posts in parallel
+  // 3. Get page tokens (comments require page access token, not system user token)
+  const pageIds = [...new Set(postIds.map(getPageId))]
+  const pageTokenMap: Record<string, string> = {}
+  await Promise.all(
+    pageIds.map(async (pageId) => {
+      pageTokenMap[pageId] = await getPageToken(pageId, metaToken)
+    })
+  )
+
+  // 4. Fetch comments for all posts in parallel using page tokens
   const commentResults = await Promise.all(
     postIds.map(async (postId) => {
+      const pageToken = pageTokenMap[getPageId(postId)] ?? metaToken
       const params = new URLSearchParams({
         fields: 'id,message,from,created_time',
         filter: 'stream',
         limit: '50',
-        access_token: metaToken,
+        access_token: pageToken,
       })
       const res = await fetch(`https://graph.facebook.com/v21.0/${postId}/comments?${params}`)
       const data = await res.json() as { data: MetaComment[] }
