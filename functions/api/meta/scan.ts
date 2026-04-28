@@ -8,7 +8,7 @@ interface Env {
 
 interface MetaAd {
   id: string
-  creative?: { object_story_id?: string }
+  creative?: { object_story_id?: string; effective_object_story_id?: string }
 }
 
 interface MetaComment {
@@ -36,7 +36,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
 
   // 1. Get ads — use URLSearchParams so effective_status encodes correctly
   const adsParams = new URLSearchParams({
-    fields: 'id,creative{object_story_id}',
+    fields: 'id,creative{effective_object_story_id,object_story_id}',
     effective_status: JSON.stringify(['ACTIVE', 'PAUSED']),
     limit: '50',
     access_token: metaToken,
@@ -48,10 +48,10 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
     return Response.json({ error: adsData.error.message }, { status: 502 })
   }
 
-  // 2. Collect unique post IDs
+  // 2. Collect unique post IDs — prefer effective_object_story_id, fall back to object_story_id
   const postIds = [...new Set(
     (adsData.data ?? [])
-      .map(ad => ad.creative?.object_story_id)
+      .map(ad => ad.creative?.effective_object_story_id ?? ad.creative?.object_story_id)
       .filter((id): id is string => Boolean(id))
   )]
 
@@ -60,7 +60,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
       comments: [],
       scanned: 0,
       posts: 0,
-      debug: `Found ${adsData.data?.length ?? 0} ads, but none had a post ID. Make sure the system user has access to your Facebook Pages.`,
+      debug: `Found ${adsData.data?.length ?? 0} ads but no linked post IDs. This usually means the ads use a creative format not linked to a page post (e.g. catalog/dynamic ads).`,
     })
   }
 
