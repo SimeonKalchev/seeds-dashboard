@@ -34,10 +34,19 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   const { accountId } = await request.json<{ accountId: string }>()
   const metaToken = env.Meta_Seeds_Bot_Token
 
-  // 1. Get active/paused ads with creative info
-  const adsUrl = `https://graph.facebook.com/v21.0/${accountId}/ads?fields=id,creative{object_story_id}&effective_status=["ACTIVE","PAUSED"]&limit=30&access_token=${metaToken}`
-  const adsRes = await fetch(adsUrl)
-  const adsData = await adsRes.json() as { data: MetaAd[] }
+  // 1. Get ads — use URLSearchParams so effective_status encodes correctly
+  const adsParams = new URLSearchParams({
+    fields: 'id,creative{object_story_id}',
+    effective_status: JSON.stringify(['ACTIVE', 'PAUSED']),
+    limit: '50',
+    access_token: metaToken,
+  })
+  const adsRes = await fetch(`https://graph.facebook.com/v21.0/${accountId}/ads?${adsParams}`)
+  const adsData = await adsRes.json() as { data: MetaAd[]; error?: { message: string } }
+
+  if (adsData.error) {
+    return Response.json({ error: adsData.error.message }, { status: 502 })
+  }
 
   // 2. Collect unique post IDs
   const postIds = [...new Set(
@@ -47,14 +56,24 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   )]
 
   if (!postIds.length) {
-    return Response.json({ comments: [], scanned: 0, posts: 0 })
+    return Response.json({
+      comments: [],
+      scanned: 0,
+      posts: 0,
+      debug: `Found ${adsData.data?.length ?? 0} ads, but none had a post ID. Make sure the system user has access to your Facebook Pages.`,
+    })
   }
 
   // 3. Fetch comments for all posts in parallel
   const commentResults = await Promise.all(
     postIds.map(async (postId) => {
-      const url = `https://graph.facebook.com/v21.0/${postId}/comments?fields=id,message,from,created_time&filter=stream&limit=50&access_token=${metaToken}`
-      const res = await fetch(url)
+      const params = new URLSearchParams({
+        fields: 'id,message,from,created_time',
+        filter: 'stream',
+        limit: '50',
+        access_token: metaToken,
+      })
+      const res = await fetch(`https://graph.facebook.com/v21.0/${postId}/comments?${params}`)
       const data = await res.json() as { data: MetaComment[] }
       return (data.data ?? []).map(c => ({ ...c, postId }))
     })

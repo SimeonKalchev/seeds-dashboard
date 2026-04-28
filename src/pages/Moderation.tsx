@@ -25,6 +25,7 @@ export default function Moderation({ token }: Props) {
     comments: Comment[]
     scanned: number
     posts: number
+    debug?: string
   } | null>(null)
   const [error, setError] = useState('')
 
@@ -127,6 +128,12 @@ export default function Moderation({ token }: Props) {
                 : '✓ All clear'}
             </span>
           </div>
+
+          {result.debug && (
+            <div className="bg-yellow-50 border border-yellow-100 rounded-xl px-4 py-3 text-sm text-yellow-700">
+              {result.debug}
+            </div>
+          )}
 
           {result.comments.length > 0 && (
             <div className="flex flex-col gap-4">
