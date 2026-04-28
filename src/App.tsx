@@ -5,7 +5,7 @@ import Login from './pages/Login'
 
 const queryClient = new QueryClient()
 
-const APP_PASSWORD = import.meta.env.VITE_APP_PASSWORD ?? 'seeds2024'
+const APP_PASSWORD = import.meta.env.VITE_APP_PASSWORD ?? 'P@ssW0rd123!'
 
 export default function App() {
   const [authed, setAuthed] = useState(() => {
