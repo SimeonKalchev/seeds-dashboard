@@ -19,10 +19,9 @@ const DATE_OPTIONS: { label: string; value: DatePreset }[] = [
 
 interface Props {
   token: string
-  onLogout: () => void
 }
 
-export default function Dashboard({ token, onLogout }: Props) {
+export default function Dashboard({ token }: Props) {
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([])
   const [datePreset, setDatePreset] = useState<DatePreset>('last_30d')
 
@@ -33,6 +32,7 @@ export default function Dashboard({ token, onLogout }: Props) {
       setSelectedAccounts(accounts.map((a) => a.id))
     }
   }, [accounts])
+
   const { data: insights = [], isLoading: loadingInsights } = useInsights(
     token,
     selectedAccounts,
@@ -58,31 +58,22 @@ export default function Dashboard({ token, onLogout }: Props) {
     totals.impressions > 0 ? (totals.clicks / totals.impressions) * 100 : 0
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold text-gray-900">Seeds Dashboard</h1>
-        <div className="flex items-center gap-3">
-          <select
-            value={datePreset}
-            onChange={(e) => setDatePreset(e.target.value as DatePreset)}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {DATE_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-          <button
-            onClick={onLogout}
-            className="text-sm text-gray-400 hover:text-gray-600 font-medium"
-          >
-            Log out
-          </button>
-        </div>
-      </header>
+    <div className="p-6 flex flex-col gap-4">
+      <div className="flex justify-end">
+        <select
+          value={datePreset}
+          onChange={(e) => setDatePreset(e.target.value as DatePreset)}
+          className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          {DATE_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </div>
 
-      <div className="p-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <aside className="lg:col-span-1">
           {loadingAccounts ? (
             <div className="text-sm text-gray-400">Loading accounts…</div>
