@@ -86,19 +86,17 @@ export default function Moderation({ token }: Props) {
     finally { setLoading(false) }
   }
 
-  async function hideComment(commentId: string) {
+  async function hideComment(commentId: string, postId: string) {
     setHidingId(commentId)
     try {
       const res = await fetch('/api/meta/hide-comment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ commentId }),
+        body: JSON.stringify({ commentId, postId }),
       })
+      const d = await res.json()
       if (res.ok) setHiddenIds(prev => new Set([...prev, commentId]))
-      else {
-        const d = await res.json()
-        setError(d.error ?? 'Failed to hide comment')
-      }
+      else setError(d.details?.error?.message ?? d.error ?? 'Failed to hide comment')
     } finally { setHidingId(null) }
   }
 
@@ -209,7 +207,7 @@ export default function Moderation({ token }: Props) {
                 )}
               </div>
               <button
-                onClick={() => hideComment(c.id)}
+                onClick={() => hideComment(c.id, c.postId)}
                 disabled={hiddenIds.has(c.id) || hidingId === c.id}
                 className="self-start bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white text-xs font-medium rounded-lg px-4 py-1.5 transition-colors"
               >

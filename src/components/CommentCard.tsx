@@ -28,7 +28,7 @@ export default function CommentCard({ comment, token, onDone }: Props) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ commentId: comment.id }),
+        body: JSON.stringify({ commentId: comment.id, postId: comment.postId }),
       })
       if (res.ok) {
         setStatus('hidden')
