@@ -3,6 +3,7 @@ import { useAccounts, useInsights } from '../hooks/useMeta'
 import AccountSelector from '../components/AccountSelector'
 import MetricCard from '../components/MetricCard'
 import SpendChart from '../components/SpendChart'
+import CountryTable from '../components/CountryTable'
 import type { DatePreset } from '../lib/types'
 import { formatCurrency, formatNumber, formatPercent } from '../lib/utils'
 
@@ -108,6 +109,7 @@ export default function Dashboard({ token, onLogout }: Props) {
                 <MetricCard label="CTR" value={formatPercent(avgCtr)} />
               </div>
               <SpendChart data={insights} />
+              <CountryTable insights={insights} />
             </>
           )}
         </main>
