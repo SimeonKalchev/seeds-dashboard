@@ -5,31 +5,44 @@ import Login from './pages/Login'
 
 const queryClient = new QueryClient()
 
-const APP_PASSWORD = import.meta.env.VITE_APP_PASSWORD ?? 'P@ssW0rd123!'
-
 export default function App() {
-  const [authed, setAuthed] = useState(() => {
-    return sessionStorage.getItem('seeds_authed') === 'true'
-  })
+  const [token, setToken] = useState(() => sessionStorage.getItem('seeds_token') ?? '')
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  function handleLogin(password: string) {
-    if (password === APP_PASSWORD) {
-      sessionStorage.setItem('seeds_authed', 'true')
-      setAuthed(true)
-      setError('')
-    } else {
-      setError('Incorrect password')
+  async function handleLogin(password: string) {
+    setLoading(true)
+    setError('')
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error ?? 'Login failed')
+      } else {
+        sessionStorage.setItem('seeds_token', data.token)
+        setToken(data.token)
+      }
+    } catch {
+      setError('Network error — please try again')
+    } finally {
+      setLoading(false)
     }
   }
 
-  if (!authed) {
-    return <Login onLogin={handleLogin} error={error} />
+  if (!token) {
+    return <Login onLogin={handleLogin} error={error} loading={loading} />
   }
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Dashboard />
+      <Dashboard token={token} onLogout={() => {
+        sessionStorage.removeItem('seeds_token')
+        setToken('')
+      }} />
     </QueryClientProvider>
   )
 }

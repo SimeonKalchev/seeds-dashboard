@@ -16,12 +16,18 @@ const DATE_OPTIONS: { label: string; value: DatePreset }[] = [
   { label: 'Last month', value: 'last_month' },
 ]
 
-export default function Dashboard() {
+interface Props {
+  token: string
+  onLogout: () => void
+}
+
+export default function Dashboard({ token, onLogout }: Props) {
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([])
   const [datePreset, setDatePreset] = useState<DatePreset>('last_30d')
 
-  const { data: accounts = [], isLoading: loadingAccounts } = useAccounts()
+  const { data: accounts = [], isLoading: loadingAccounts } = useAccounts(token)
   const { data: insights = [], isLoading: loadingInsights } = useInsights(
+    token,
     selectedAccounts,
     datePreset
   )
@@ -48,17 +54,25 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
         <h1 className="text-xl font-bold text-gray-900">Seeds Dashboard</h1>
-        <select
-          value={datePreset}
-          onChange={(e) => setDatePreset(e.target.value as DatePreset)}
-          className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          {DATE_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
+        <div className="flex items-center gap-3">
+          <select
+            value={datePreset}
+            onChange={(e) => setDatePreset(e.target.value as DatePreset)}
+            className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {DATE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={onLogout}
+            className="text-sm text-gray-400 hover:text-gray-600 font-medium"
+          >
+            Log out
+          </button>
+        </div>
       </header>
 
       <div className="p-6 grid grid-cols-1 lg:grid-cols-4 gap-6">

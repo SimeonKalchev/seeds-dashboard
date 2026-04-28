@@ -1,13 +1,13 @@
 interface Props {
   onLogin: (password: string) => void
   error?: string
+  loading?: boolean
 }
 
-export default function Login({ onLogin, error }: Props) {
+export default function Login({ onLogin, error, loading }: Props) {
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    const form = e.currentTarget
-    const password = (form.elements.namedItem('password') as HTMLInputElement).value
+    const password = (e.currentTarget.elements.namedItem('password') as HTMLInputElement).value
     onLogin(password)
   }
 
@@ -22,14 +22,16 @@ export default function Login({ onLogin, error }: Props) {
             type="password"
             placeholder="Password"
             required
-            className="border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={loading}
+            className="border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
           />
           {error && <p className="text-xs text-red-500">{error}</p>}
           <button
             type="submit"
-            className="bg-blue-500 hover:bg-blue-600 text-white font-medium text-sm rounded-lg px-4 py-2.5 transition-colors"
+            disabled={loading}
+            className="bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white font-medium text-sm rounded-lg px-4 py-2.5 transition-colors"
           >
-            Sign in
+            {loading ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
       </div>
