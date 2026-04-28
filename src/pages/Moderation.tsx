@@ -19,6 +19,7 @@ interface RawComment {
   from?: { name: string; id: string }
   created_time: string
   postId: string
+  adId?: string
 }
 
 interface PostSummary {
@@ -42,7 +43,7 @@ export default function Moderation({ token }: Props) {
   const [aiResult, setAiResult] = useState<{ comments: Comment[]; scanned: number; posts: number; debug?: string } | null>(null)
 
   // Browse all state
-  const [browseResult, setBrowseResult] = useState<{ comments: RawComment[]; posts: PostSummary[]; total: number } | null>(null)
+  const [browseResult, setBrowseResult] = useState<{ comments: RawComment[]; posts: PostSummary[]; total: number; accountId?: string } | null>(null)
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set())
   const [hidingId, setHidingId] = useState<string | null>(null)
 
@@ -193,10 +194,19 @@ export default function Moderation({ token }: Props) {
                   {new Date(c.created_time).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </span>
               </div>
-              <div className="flex gap-2 text-xs text-gray-400 font-mono">
+              <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-400 font-mono">
                 <span>comment: {c.id}</span>
-                <span>·</span>
                 <span>post: {c.postId}</span>
+                {c.adId && (
+                  <a
+                    href={`https://adsmanager.facebook.com/adsmanager/manage/ads?act=${browseResult?.accountId?.replace('act_', '')}&selected_ad_ids=${c.adId}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-blue-400 hover:text-blue-600 underline"
+                  >
+                    Open ad ↗
+                  </a>
+                )}
               </div>
               <button
                 onClick={() => hideComment(c.id)}

@@ -37,17 +37,20 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
   const adsRes = await fetch(`https://graph.facebook.com/v21.0/${accountId}/ads?${adsParams}`)
   const adsData = await adsRes.json() as { data: MetaAd[] }
 
-  const postIds = [...new Set(
-    (adsData.data ?? [])
-      .map(ad => ad.creative?.effective_object_story_id ?? ad.creative?.object_story_id)
-      .filter((id): id is string => Boolean(id))
-  )]
+  // Build map: postId → adId
+  const postToAd: Record<string, string> = {}
+  for (const ad of adsData.data ?? []) {
+    const postId = ad.creative?.effective_object_story_id ?? ad.creative?.object_story_id
+    if (postId) postToAd[postId] = ad.id
+  }
+
+  const postIds = Object.keys(postToAd)
 
   if (!postIds.length) {
     return Response.json({ comments: [], posts: [], total: 0 })
   }
 
-  // 2. Get unique page tokens (one per page)
+  // 2. Get page tokens
   const pageIds = [...new Set(postIds.map(getPageId))]
   const pageTokenMap: Record<string, string> = {}
   await Promise.all(
@@ -56,7 +59,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
     })
   )
 
-  // 3. Fetch comments using page token for each post
+  // 3. Fetch comments using page token
   const postResults = await Promise.all(
     postIds.slice(0, 20).map(async (postId) => {
       const pageToken = pageTokenMap[getPageId(postId)] ?? systemToken
@@ -70,7 +73,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
       const data = await res.json() as { data?: MetaComment[]; error?: { message: string } }
       return {
         postId,
-        comments: (data.data ?? []).map(c => ({ ...c, postId })),
+        adId: postToAd[postId],
+        comments: (data.data ?? []).map(c => ({ ...c, postId, adId: postToAd[postId] })),
         error: data.error?.message,
       }
     })
@@ -80,7 +84,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ env, request }) => {
 
   return Response.json({
     comments: allComments,
-    posts: postResults.map(r => ({ postId: r.postId, count: r.comments.length, error: r.error })),
+    posts: postResults.map(r => ({ postId: r.postId, adId: r.adId, count: r.comments.length, error: r.error })),
     total: allComments.length,
+    accountId,
   })
 }
